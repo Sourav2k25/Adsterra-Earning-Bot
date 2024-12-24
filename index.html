@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTTC Earnings 🌌</title>
+    <style>
+        /* General Styling */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: #000;
+        }
+
+        .app-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            width: 350px;
+            box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .exit-button {
+            background-color: red;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .exit-button:hover {
+            background-color: darkred;
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
+        }
+
+        .button {
+            margin: 10px 0;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            color: black;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 90%;
+            max-width: 300px;
+            transition: transform 0.2s ease, background-color 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .earn-ad-button {
+            background: linear-gradient(45deg, #ff8c00, #ff4500);
+        }
+        .earn-ad-button:hover {
+            background: linear-gradient(45deg, #ff4500, #ff6347);
+        }
+
+        .withdraw-button {
+            background: linear-gradient(45deg, #1e90ff, #00bfff);
+        }
+        .withdraw-button:hover {
+            background: linear-gradient(45deg, #00bfff, #1c74e0);
+        }
+
+        .history-button {
+            background: linear-gradient(45deg, #32cd32, #228b22);
+        }
+        .history-button:hover {
+            background: linear-gradient(45deg, #228b22, #2e8b57);
+        }
+
+        .earnings-display {
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .balance-icon {
+            width: 30px;
+            height: 30px;
+            margin: 0 8px;
+        }
+
+        .input-field { 
+            padding: 10px; 
+            margin: 10px 0; 
+            font-size: 16px; 
+            width: 90%; 
+            border-radius: 8px; 
+            border: 1px solid #ccc; 
+            box-sizing: border-box;
+        }
+
+        .verified-badge {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 12px;
+            padding: 3px 8px;
+            margin-left: 5px;
+            border-radius: 12px;
+            vertical-align: middle;
+        }
+
+        .withdraw-history {
+            display: none;
+            margin-top: 20px;
+            width: 100%;
+            text-align: left;
+            margin: 0 auto;
+            max-width: 350px;
+        }
+
+        .withdraw-history ul {
+            padding: 0;
+            list-style-type: none;
+        }
+
+        .withdraw-history li {
+            border-bottom: 1px solid #ccc;
+            padding: 8px 0;
+        }
+
+        .no-history-message {
+            font-size: 16px;
+            color: #ff4500;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <button class="exit-button" onclick="goBack()">Exit</button>
+
+        <div class="earnings-display" id="earningsDisplay">
+            Earnings: <img src="https://cdn.glitch.global/5beca440-9689-4cf0-a084-f98252cea125/3718.png?v=1733477000234" alt="BTTC Icon" class="balance-icon"> 0 BTTC
+        </div>
+        <button class="button earn-ad-button" onclick="showAdAndEarn()">Show Ad & Earn 10 BTTC</button>
+        <button class="button withdraw-button" onclick="showWithdrawForm()">Withdraw</button>
+        <button class="button history-button" onclick="toggleWithdrawHistory()">Withdraw History</button>
+
+        <div id="withdrawForm" style="display:none;">
+            <input type="text" id="walletAddress" class="input-field" placeholder="Enter BTTC BEP20 Wallet Address">
+            <div id="verifiedBadge" style="display:none;">
+                Wallet Connected <span class="verified-badge">✔ Verified</span>
+            </div>
+            <input type="number" id="withdrawAmount" class="input-field" placeholder="Enter Withdrawal Amount (Min 2000 BTTC)" disabled>
+            <button class="button withdraw-button" id="confirmWithdrawButton" onclick="confirmWithdraw()" disabled>Confirm Withdraw</button>
+        </div>
+
+        <div id="withdrawHistory" class="withdraw-history">
+            <h3>Withdrawal History</h3>
+            <ul id="historyList"></ul>
+            <div id="noHistoryMessage" class="no-history-message" style="display: none;">
+                You haven't made any withdrawals yet.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let earnings = parseFloat(localStorage.getItem("bttcEarnings")) || 0;
+        let walletAddress = localStorage.getItem("walletAddress") || null;
+        const MIN_WITHDRAWAL_AMOUNT = 2000;
+
+        function updateEarningsDisplay() {
+            document.getElementById("earningsDisplay").innerHTML = `Earnings: <img src="https://cdn.glitch.global/5beca440-9689-4cf0-a084-f98252cea125/3718.png?v=1733477000234" alt="BTTC Icon" class="balance-icon"> ${earnings.toFixed(2)} BTTC`;
+        }
+
+        function showAdAndEarn() {
+            const adUrl = "https://www.profitablecpmrate.com/s5a1z58d?key=0359efcb5b95a156d63b0d70a71d5dc3";
+            const newTab = window.open(adUrl, "_blank");
+
+            if (newTab) {
+                setTimeout(() => {
+                    newTab.close();
+                    earnBttc(10);
+                }, 20000); // 20 seconds
+            } else {
+                alert("Please allow pop-ups to view the ad.");
+            }
+        }
+
+        function earnBttc(amount) {
+            earnings += amount;
+            localStorage.setItem("bttcEarnings", earnings);
+            updateEarningsDisplay();
+        }
+
+        function showWithdrawForm() {
+            const walletInput = document.getElementById("walletAddress");
+            const badge = document.getElementById("verifiedBadge");
+
+            if (walletAddress) {
+                walletInput.value = walletAddress;
+                walletInput.disabled = true;
+                badge.style.display = "block";
+            } else {
+                walletInput.addEventListener("change", (event) => {
+                    walletAddress = event.target.value;
+                    localStorage.setItem("walletAddress", walletAddress);
+                    walletInput.disabled = true;
+                    badge.style.display = "block";
+                });
+            }
+
+            document.getElementById("withdrawForm").style.display = "block";
+            updateWithdrawForm();
+        }
+
+        function updateWithdrawForm() {
+            const withdrawAmountInput = document.getElementById("withdrawAmount");
+            const confirmButton = document.getElementById("confirmWithdrawButton");
+
+            if (earnings >= MIN_WITHDRAWAL_AMOUNT) {
+                withdrawAmountInput.disabled = false;
+                confirmButton.disabled = false;
+            } else {
+                withdrawAmountInput.disabled = true;
+                confirmButton.disabled = true;
+            }
+        }
+
+        function toggleWithdrawHistory() {
+            const historyDiv = document.getElementById("withdrawHistory");
+            historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
+            renderWithdrawHistory();
+        }
+
+        function confirmWithdraw() {
+            const withdrawAmount = parseFloat(document.getElementById("withdrawAmount").value);
+
+            if (withdrawAmount <= 0 || withdrawAmount > earnings) {
+                alert("Invalid withdrawal amount.");
+                return;
+            }
+
+            const finalAmount = withdrawAmount;
+            earnings -= finalAmount;
+
+            const history = JSON.parse(localStorage.getItem("withdrawHistory")) || [];
+            const withdrawalDate = new Date().toLocaleString();
+            history.push({ date: withdrawalDate, amount: finalAmount, wallet: walletAddress });
+            localStorage.setItem("withdrawHistory", JSON.stringify(history));
+            localStorage.setItem("bttcEarnings", earnings);
+            updateEarningsDisplay();
+
+            alert(`Withdrawal of ${finalAmount.toFixed(2)} BTTC successful!`);
+            renderWithdrawHistory();
+        }
+
+        function renderWithdrawHistory() {
+            const historyList = document.getElementById("historyList");
+            const noHistoryMessage = document.getElementById("noHistoryMessage");
+            const history = JSON.parse(localStorage.getItem("withdrawHistory")) || [];
+
+            historyList.innerHTML = '';
+
+            if (history.length === 0) {
+                noHistoryMessage.style.display = "block";
+            } else {
+                noHistoryMessage.style.display = "none";
+                history.forEach((entry) => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `${entry.date} - ${entry.amount} BTTC to ${entry.wallet}`;
+                    historyList.appendChild(li);
+                });
+            }
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        window.onload = updateEarningsDisplay;
+    </script>
+</body>
+</html>
